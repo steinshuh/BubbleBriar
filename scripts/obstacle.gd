@@ -44,10 +44,11 @@ func _ready() -> void:
 
 # _process(delta) runs every rendered frame.
 func _process(delta: float) -> void:
-	# Move the obstacle left. Multiplying by delta makes movement frame-rate independent.
+	# Move the obstacle left for positive speed or right for negative speed. Multiplying by delta makes movement frame-rate independent.
 	position.x -= speed * delta
-	# Once the obstacle is far enough off the left side, tell main.gd it can be removed.
-	if position.x < -120.0:
+	# Once the obstacle is far enough off either horizontal side, tell main.gd it can be removed.
+	# The right-side check matters when the player accelerates backward and the world scrolls right.
+	if position.x < -120.0 or position.x > viewport_size.x + 240.0:
 		# Emit the escaped signal and pass this obstacle node as the argument.
 		escaped.emit(self)
 
@@ -150,3 +151,5 @@ func _draw_mosquito() -> void:
 		draw_line(Vector2(-7, y), Vector2(-36, y + 18.0), Color("#261b22"), 2.0)
 		# Draw one right leg.
 		draw_line(Vector2(7, y), Vector2(36, y + 18.0), Color("#261b22"), 2.0)
+
+

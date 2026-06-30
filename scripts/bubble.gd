@@ -20,6 +20,8 @@ const MAX_FALL := 650.0
 var radius := 31.0
 # alive is true during active play and false after the bubble pops.
 var alive := true
+# fixed_x is the horizontal screen position where the bubble should stay anchored.
+var fixed_x := 0.0
 # viewport_size stores the game window size so the bubble can stay inside it.
 var viewport_size := Vector2(1280, 720)
 
@@ -42,8 +44,10 @@ func _ready() -> void:
 func setup(size: Vector2) -> void:
 	# Store the current viewport size.
 	viewport_size = size
-	# Place the bubble about one quarter from the left and near the vertical middle.
-	position = Vector2(size.x * 0.24, size.y * 0.45)
+	# Store the constant x position for the bubble.
+	fixed_x = size.x * 0.24
+	# Place the bubble at its fixed x position and near the vertical middle.
+	position = Vector2(fixed_x, size.y * 0.45)
 	# Stop all previous movement from an old run.
 	velocity = Vector2.ZERO
 	# Mark the bubble alive again.
@@ -60,6 +64,8 @@ func _physics_process(delta: float) -> void:
 		velocity.y += GRAVITY * delta
 		# Move according to the current velocity.
 		move_and_slide()
+		# Keep the popped bubble horizontally anchored too; the world scrolls instead of the character.
+		position.x = fixed_x
 		# Stop here so the living-bubble logic below does not run.
 		return
 
@@ -72,6 +78,8 @@ func _physics_process(delta: float) -> void:
 	velocity.y = min(velocity.y + GRAVITY * delta, MAX_FALL)
 	# Move the CharacterBody2D using Godot's built-in sliding movement.
 	move_and_slide()
+	# Keep the bubble's x coordinate constant; forward/backward input changes world scroll speed instead.
+	position.x = fixed_x
 
 	# floor_y is the highest y position the bubble's bottom edge may touch.
 	var floor_y := viewport_size.y - 118.0
@@ -110,3 +118,4 @@ func _draw() -> void:
 	draw_circle(Vector2(-10, -12), 8.0, Color(1.0, 1.0, 1.0, 0.72))
 	# Draw a curved lower highlight to make the bubble feel glossy.
 	draw_arc(Vector2(5, 9), 16.0, 0.35, 2.55, 28, Color(1.0, 1.0, 1.0, 0.36), 3.0, true)
+

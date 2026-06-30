@@ -5,10 +5,15 @@ extends Node2D
 # @export means the value can be edited in Godot's Inspector if the node is placed in a scene.
 # layer_kind chooses what this layer draws: 0 sky, 1 far hills, 2 near trees, 3 ground.
 @export var layer_kind := 0
-# speed_factor controls how fast this layer moves compared with the main game speed.
-# 0.0 means no scrolling. 1.0 means full scrolling speed.
+# distance_feet is a notional distance from the camera/player to this layer.
+# The game computes speed_factor as 1.0 / distance_feet, so closer layers move faster.
+# A value of 0.0 means "infinitely far away" and produces no scrolling.
+@export var distance_feet := 0.0
+# speed_factor controls how fast this layer moves compared with the immediate foreground.
+# It is computed from distance_feet instead of being entered directly.
 @export var speed_factor := 0.0
-# world_speed is the base speed passed in by main.gd.
+# world_speed is the current scroll speed passed in by main.gd.
+# It can be positive for forward movement or negative for backward movement.
 @export var world_speed := 0.0
 
 # viewport_size stores the current visible game area, used for drawing at the right size.
@@ -19,12 +24,14 @@ var offset_x := 0.0
 var tile_width := 1280.0
 
 # setup() is called by main.gd immediately after the layer is created.
-func setup(kind: int, factor: float, speed: float, size: Vector2) -> void:
+func setup(kind: int, feet: float, speed: float, size: Vector2) -> void:
 	# Store which drawing mode this layer should use.
 	layer_kind = kind
-	# Store how much of the main speed this layer should use.
-	speed_factor = factor
-	# Store the base world speed from the main game.
+	# Store the notional distance that controls parallax speed.
+	distance_feet = feet
+	# Convert the notional distance into a parallax speed factor.
+	speed_factor = _speed_factor_from_distance(distance_feet)
+	# Store the current world speed from the main game.
 	world_speed = speed
 	# Store the viewport size so drawing can scale to the window.
 	viewport_size = size
@@ -33,13 +40,27 @@ func setup(kind: int, factor: float, speed: float, size: Vector2) -> void:
 	# Ask Godot to call _draw() soon so the layer appears on screen.
 	queue_redraw()
 
+# set_scroll_speed() lets main.gd change the current scrolling speed every frame.
+func set_scroll_speed(speed: float) -> void:
+	# Store the new speed. Positive scrolls the world left; negative scrolls it right.
+	world_speed = speed
+
+# _speed_factor_from_distance() converts notional feet into a parallax multiplier.
+func _speed_factor_from_distance(feet: float) -> float:
+	# Zero or negative feet means the layer is treated as infinitely far away and stationary.
+	if feet <= 0.0:
+		return 0.0
+	# The immediate layer is 1 foot away, so 1.0 / 1.0 gives full speed.
+	# The old 0.55 layer becomes 1 / 1.81818, and the old 0.22 layer becomes 1 / 4.54545.
+	return 1.0 / feet
+
 # _process(delta) runs once per rendered frame.
 func _process(delta: float) -> void:
 	# A speed factor of 0.0 is the stationary sky/mountain layer, so it should not move.
 	if speed_factor > 0.0:
-		# Move the horizontal offset forward based on speed and frame time.
-		# fmod() wraps the value back around when it reaches tile_width, creating an infinite loop.
-		offset_x = fmod(offset_x + world_speed * speed_factor * delta, tile_width)
+		# Move the horizontal offset based on current speed, parallax factor, and frame time.
+		# fposmod() wraps both positive and negative scrolling into the 0..tile_width range.
+		offset_x = fposmod(offset_x + world_speed * speed_factor * delta, tile_width)
 		# The offset changed, so the layer must be redrawn in its new position.
 		queue_redraw()
 
