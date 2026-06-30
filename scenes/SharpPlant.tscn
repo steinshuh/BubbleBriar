@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://bubblebriar_sharp_plant"]
+
+[ext_resource type="Script" path="res://scripts/sharp_plant.gd" id="1_sharp_plant"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_sharp_plant"]
+radius = 24.0
+height = 116.0
+
+[node name="SharpPlant" type="Area2D"]
+script = ExtResource("1_sharp_plant")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -58)
+shape = SubResource("CapsuleShape2D_sharp_plant")

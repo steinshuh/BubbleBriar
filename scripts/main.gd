@@ -3,11 +3,12 @@
 extends Node2D
 
 # preload() loads another script before the game starts using it.
-# These constants let us create new background and obstacle objects in code.
+# This constant lets us create new background layer objects in code.
 const BackgroundLayer := preload("res://scripts/background_layer.gd")
-const Obstacle := preload("res://scripts/obstacle.gd")
-# This constant preloads the Bubble scene, which contains the bubble node and its collision shape.
+# These constants preload reusable scenes that already contain their scripts and collision shapes.
 const BubbleScene := preload("res://scenes/Bubble.tscn")
+const MosquitoScene := preload("res://scenes/Mosquito.tscn")
+const SharpPlantScene := preload("res://scenes/SharpPlant.tscn")
 
 # BASE_SCROLL_SPEED is the continual forward speed of the bubble through the world.
 # The bubble stays fixed on screen, so this speed is shown by scrolling the world left.
@@ -106,9 +107,9 @@ func _process(delta: float) -> void:
 	for obstacle in obstacles:
 		# obstacle.passed prevents one obstacle from giving points more than once.
 		# obstacle.position.x < bubble.position.x means the obstacle moved left of the bubble.
-		if not obstacle.passed and obstacle.position.x < bubble.position.x:
+		if not obstacle.get("passed") and obstacle.position.x < bubble.position.x:
 			# Mark this obstacle as already scored.
-			obstacle.passed = true
+			obstacle.set("passed", true)
 			# Add one point for passing the obstacle.
 			score += 1
 			# Update the visible score text.
@@ -144,7 +145,7 @@ func _apply_scroll_speed() -> void:
 	# Update every active obstacle so hazards move with the same immediate foreground speed.
 	for obstacle in obstacles:
 		# Obstacle speed is always positive because the world continually moves forward.
-		obstacle.speed = current_scroll_speed
+		obstacle.set("speed", current_scroll_speed)
 
 # _update_speed_label() displays current scroll speed in the UI.
 func _update_speed_label() -> void:
@@ -270,20 +271,20 @@ func _start_run() -> void:
 
 # _spawn_obstacle() creates one new plant or mosquito just off the right side of the screen.
 func _spawn_obstacle() -> void:
-	# Create the obstacle node from the preloaded script.
-	var obstacle := Obstacle.new()
 	# Choose a plant 58% of the time and a mosquito 42% of the time.
-	var kind := Obstacle.ObstacleKind.PLANT if randf() < 0.58 else Obstacle.ObstacleKind.MOSQUITO
+	var obstacle_scene := SharpPlantScene if randf() < 0.58 else MosquitoScene
+	# Create the obstacle node from the chosen scene.
+	var obstacle := obstacle_scene.instantiate() as Area2D
 	# Position the obstacle slightly beyond the right edge so it scrolls into view.
-	obstacle.setup(kind, viewport_size.x + 90.0, viewport_size, current_scroll_speed)
+	obstacle.call("setup", viewport_size.x + 90.0, viewport_size, current_scroll_speed)
 	# Connect the obstacle's escaped signal so we know when to remove it.
-	obstacle.escaped.connect(_on_obstacle_escaped)
+	obstacle.connect("escaped", Callable(self, "_on_obstacle_escaped"))
 	# Store it in the active obstacles list for scoring and cleanup.
 	obstacles.append(obstacle)
 	# Add it to the scene so Godot processes, collides, and draws it.
 	add_child(obstacle)
 
-# _on_obstacle_escaped() runs when an obstacle moves far off either horizontal edge.
+# _on_obstacle_escaped() runs when an obstacle moves off the left edge.
 func _on_obstacle_escaped(obstacle: Area2D) -> void:
 	# Remove the obstacle from our list of active obstacles.
 	obstacles.erase(obstacle)
@@ -309,6 +310,9 @@ func _on_viewport_size_changed() -> void:
 		prompt_label.size = Vector2(viewport_size.x, 120)
 		# Move the prompt label to the same relative vertical position in the new window.
 		prompt_label.position = Vector2(0, viewport_size.y * 0.34)
+
+
+
 
 
 
