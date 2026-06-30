@@ -9,6 +9,10 @@ const FAR_HILLS_TEXTURE := preload("res://assets/far_hills.png")
 const NEAR_TREES_TEXTURE := preload("res://assets/near_trees.png")
 const GROUND_TEXTURE := preload("res://assets/ground.png")
 
+# NEAR_TREES_VERTICAL_OFFSET moves the near-tree artwork down on the screen.
+# A positive y offset means the image starts lower, so less of the high tree tops are visible.
+const NEAR_TREES_VERTICAL_OFFSET := 170.0
+
 # @export means the value can be edited in Godot's Inspector if the node is placed in a scene.
 # layer_kind chooses what this layer draws: 0 sky, 1 far hills, 2 near trees, 3 ground.
 @export var layer_kind := 0
@@ -31,6 +35,9 @@ var offset_x := 0.0
 var tile_width := 1280.0
 # layer_texture stores the actual PNG texture used by this layer.
 var layer_texture: Texture2D
+# draw_offset_y stores how far down this layer should be drawn.
+# Most layers use 0.0, but the near trees use a positive value because their PNG sits too high.
+var draw_offset_y := 0.0
 
 # setup() is called by main.gd immediately after the layer is created.
 func setup(kind: int, feet: float, speed: float, size: Vector2) -> void:
@@ -38,6 +45,8 @@ func setup(kind: int, feet: float, speed: float, size: Vector2) -> void:
 	layer_kind = kind
 	# Pick the correct PNG texture for this layer_kind.
 	layer_texture = _texture_for_layer(layer_kind)
+	# Pick the vertical drawing offset for this layer_kind.
+	draw_offset_y = _draw_offset_y_for_layer(layer_kind)
 	# Store the notional distance that controls parallax speed.
 	distance_feet = feet
 	# Convert the notional distance into a parallax speed factor.
@@ -70,6 +79,16 @@ func _texture_for_layer(kind: int) -> Texture2D:
 	# If an unexpected layer number is used, fall back to the sky image.
 	return SKY_TEXTURE
 
+# _draw_offset_y_for_layer() maps a layer number to a vertical drawing offset.
+func _draw_offset_y_for_layer(kind: int) -> float:
+	# Match chooses one branch based on the value of kind.
+	match kind:
+		# Layer 2 is the near trees image, which should sit lower than the full-screen default.
+		2:
+			return NEAR_TREES_VERTICAL_OFFSET
+	# Every other layer starts at the top of the viewport.
+	return 0.0
+
 # set_scroll_speed() lets main.gd change the current scrolling speed every frame.
 func set_scroll_speed(speed: float) -> void:
 	# Store the new speed. Larger values scroll the world left faster.
@@ -101,12 +120,13 @@ func _draw() -> void:
 		return
 	# The sky texture fills the screen once and stays stationary.
 	if speed_factor == 0.0:
-		draw_texture_rect(layer_texture, Rect2(Vector2.ZERO, viewport_size), false)
+		# Draw the sky at its layer-specific y offset, which is normally 0.0.
+		draw_texture_rect(layer_texture, Rect2(Vector2(0.0, draw_offset_y), viewport_size), false)
 		return
 	# Moving layers are drawn as repeated texture tiles so the world can scroll forever.
 	for tile in range(-1, 3):
 		# x is this tile's left edge after subtracting the scrolling offset.
 		var x := tile * tile_width - offset_x
 		# Draw the PNG scaled to cover this layer's full viewport-sized tile.
-		draw_texture_rect(layer_texture, Rect2(Vector2(x, 0.0), Vector2(tile_width, viewport_size.y)), false)
+		draw_texture_rect(layer_texture, Rect2(Vector2(x, draw_offset_y), Vector2(tile_width, viewport_size.y)), false)
 
