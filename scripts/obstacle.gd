@@ -2,6 +2,10 @@
 # Obstacles can be sharp plants on the ground or mosquitoes in the air.
 extends Area2D
 
+# These textures are loaded from PNG game assets instead of being drawn from code-only shapes.
+const PLANT_TEXTURE := preload("res://assets/sharp_plant.png")
+const MOSQUITO_TEXTURE := preload("res://assets/mosquito.png")
+
 # escaped is a custom signal emitted when the obstacle has moved off the left side.
 # main.gd listens for this signal so it can delete the obstacle.
 signal escaped(obstacle)
@@ -95,61 +99,25 @@ func _on_body_entered(body: Node) -> void:
 		# Call pop() on the body, which is normally the bubble.
 		body.pop()
 
-# _draw() chooses which obstacle art to draw.
+# _draw() chooses which obstacle PNG asset to draw.
 func _draw() -> void:
-	# If this obstacle is a plant, draw the sharp plant art.
+	# If this obstacle is a plant, draw the sharp plant sprite.
 	if kind == ObstacleKind.PLANT:
 		_draw_sharp_plant()
-	# Otherwise draw the mosquito art.
+	# Otherwise draw the mosquito sprite.
 	else:
 		_draw_mosquito()
 
-# _draw_sharp_plant() draws a dangerous spiked plant from polygons and circles.
+# _draw_sharp_plant() draws the plant PNG with its base near this node's origin.
 func _draw_sharp_plant() -> void:
-	# stem is a five-point polygon shaped like a tall pointed leaf.
-	var stem := PackedVector2Array([
-		Vector2(-24, 0), Vector2(-17, -92), Vector2(0, -132), Vector2(17, -92), Vector2(24, 0)
-	])
-	# Fill the plant stem with dark green.
-	draw_colored_polygon(stem, Color("#1f7a43"))
-	# Draw a light outline around the stem polygon.
-	draw_polyline(stem + PackedVector2Array([stem[0]]), Color("#b8ff8d"), 3.0)
-	# Draw spikes on both sides of the plant.
-	for side in [-1, 1]:
-		# Draw three spikes on each side.
-		for i in range(3):
-			# y is the vertical position for this spike.
-			var y := -30.0 - i * 26.0
-			# spike is a small triangle sticking out of the stem.
-			var spike := PackedVector2Array([
-				Vector2(side * 8, y),
-				Vector2(side * (44 + i * 6), y - 16),
-				Vector2(side * 10, y - 24),
-			])
-			# Fill the spike triangle with a lighter green.
-			draw_colored_polygon(spike, Color("#6bbb48"))
-	# Draw a pale point at the tip to make the plant look extra sharp.
-	draw_circle(Vector2(0, -134), 8.0, Color("#eaffbd"))
+	# The plant image is 128x160. Drawing it from y=-150 leaves its base at y=0.
+	var rect := Rect2(Vector2(-64.0, -150.0), Vector2(128.0, 160.0))
+	# Draw the loaded plant texture into that rectangle.
+	draw_texture_rect(PLANT_TEXTURE, rect, false)
 
-# _draw_mosquito() draws a flying obstacle from circles, ellipses, and lines.
+# _draw_mosquito() draws the mosquito PNG centered on this node's origin.
 func _draw_mosquito() -> void:
-	# Draw the mosquito body as a dark circle at the node origin.
-	draw_circle(Vector2.ZERO, 15.0, Color("#40313c"))
-	# Draw the left translucent wing.
-	draw_ellipse(Vector2(-28, -10), 20.0, 16.0, Color(0.85, 0.95, 1.0, 0.48))
-	# Draw the right translucent wing.
-	draw_ellipse(Vector2(28, -10), 20.0, 16.0, Color(0.85, 0.95, 1.0, 0.48))
-	# Draw the mosquito's needle-like mouth part.
-	draw_line(Vector2(14, 0), Vector2(48, -9), Color("#261b22"), 3.0)
-	# Draw a small red point at the end of the mouth part.
-	draw_line(Vector2(48, -9), Vector2(62, -7), Color("#d94f4f"), 2.0)
-	# Draw three pairs of legs.
-	for leg in range(3):
-		# y spaces the legs vertically along the body.
-		var y := -6.0 + leg * 8.0
-		# Draw one left leg.
-		draw_line(Vector2(-7, y), Vector2(-36, y + 18.0), Color("#261b22"), 2.0)
-		# Draw one right leg.
-		draw_line(Vector2(7, y), Vector2(36, y + 18.0), Color("#261b22"), 2.0)
-
-
+	# The mosquito image is 128x96, so this rectangle centers it around (0, 0).
+	var rect := Rect2(Vector2(-64.0, -48.0), Vector2(128.0, 96.0))
+	# Draw the loaded mosquito texture into that rectangle.
+	draw_texture_rect(MOSQUITO_TEXTURE, rect, false)

@@ -2,6 +2,9 @@
 # CharacterBody2D gives us velocity and move_and_slide(), which are useful for movement.
 extends CharacterBody2D
 
+# This texture is loaded from a PNG game asset instead of being drawn from code-only shapes.
+const BUBBLE_TEXTURE := preload("res://assets/bubble.png")
+
 # popped is a custom signal.
 # Other scripts can connect to it and react when the bubble pops.
 signal popped
@@ -108,14 +111,13 @@ func pop() -> void:
 	# Tell any connected script, such as main.gd, that the bubble popped.
 	popped.emit()
 
-# _draw() creates the bubble's visual appearance using simple 2D drawing commands.
+# _draw() creates the bubble's visual appearance from the bubble PNG asset.
 func _draw() -> void:
-	# Draw the transparent blue body of the bubble.
-	draw_circle(Vector2.ZERO, radius, Color(0.55, 0.9, 1.0, 0.38))
-	# Draw a bright outline around the bubble.
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 80, Color("#dbfbff"), 4.0, true)
-	# Draw a small white highlight near the upper-left side.
-	draw_circle(Vector2(-10, -12), 8.0, Color(1.0, 1.0, 1.0, 0.72))
-	# Draw a curved lower highlight to make the bubble feel glossy.
-	draw_arc(Vector2(5, 9), 16.0, 0.35, 2.55, 28, Color(1.0, 1.0, 1.0, 0.36), 3.0, true)
+	# The texture is drawn centered on this CharacterBody2D's origin.
+	var top_left := Vector2(-radius, -radius)
+	# The drawn size matches the same radius used by the collision circle.
+	var size := Vector2(radius * 2.0, radius * 2.0)
+	# Draw the loaded PNG into the centered rectangle.
+	draw_texture_rect(BUBBLE_TEXTURE, Rect2(top_left, size), false)
+
 

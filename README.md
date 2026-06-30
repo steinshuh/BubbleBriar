@@ -13,9 +13,11 @@ A small Godot 4 2D endless runner prototype. The player is a bubble that bounces
 
 - `scenes/Main.tscn` is the main scene.
 - `scripts/main.gd` runs spawning, scoring, and restart flow.
-- `scripts/background_layer.gd` draws the four requested background layers.
-- `scripts/bubble.gd` handles bubble movement and popping.
-- `scripts/obstacle.gd` draws and moves sharp plants and mosquitoes.
+- `assets/` contains the PNG game assets imported by Godot.
+- `scripts/background_layer.gd` draws the four requested background layers from PNG textures.
+- `scripts/bubble.gd` handles bubble movement, popping, and the bubble sprite texture.
+- `scripts/obstacle.gd` draws and moves sharp plant and mosquito sprite textures.
+- `tools/generate_image_assets.ps1` regenerates the current PNG asset set.
 
 ## Runtime Flow
 
@@ -31,7 +33,7 @@ Godot starts at `scenes/Main.tscn`, which contains the root `Main` `Node2D` with
   - layer `2`: near trees and plants at `1.8181818 ft`, reversed from the old `0.55` scroll factor
   - layer `3`: immediate ground at `1.0 ft`, reversed from the old `1.0` scroll factor
 - `_build_world()` also creates the bubble, calls `bubble.gd::setup()`, connects the bubble's `popped` signal to `main.gd::_on_bubble_popped()`, and adds the bubble to the scene.
-- When the bubble enters the tree, `bubble.gd::_ready()` creates its circular collision shape and requests its first draw.
+- When the bubble enters the tree, `bubble.gd::_ready()` creates its circular collision shape and requests its first draw using `assets/bubble.png`.
 - `_build_ui()` creates the score label, speed label, and center prompt label.
 - `_start_run()` clears old obstacles, resets score and timers, resets the scroll speed to the original `245 px/s`, resets the bubble, and shows the initial control prompt.
 
@@ -45,7 +47,7 @@ Godot calls these methods repeatedly while the game is running:
 - `background_layer.gd::_process(delta)` runs every rendered frame for each background layer. Moving layers advance `offset_x` by `current_scroll_speed * speed_factor * delta` and call `queue_redraw()` so the layer scrolls right-to-left when moving forward and left-to-right when moving backward.
 - `bubble.gd::_physics_process(delta)` runs on the physics tick. It applies bounce input, gravity, floor bounce, top-boundary clamping, and `move_and_slide()`.
 - `obstacle.gd::_process(delta)` runs every rendered frame for each obstacle. It moves the obstacle by the current immediate foreground speed, left when speed is positive and right when speed is negative, and emits `escaped` when it leaves either horizontal side of the screen.
-- `_draw()` methods run when Godot redraws a node, usually after `queue_redraw()` or when the node first appears. Background layers draw sky, hills, trees, or ground; the bubble draws its translucent body; obstacles draw either a sharp plant or a mosquito.
+- `_draw()` methods run when Godot redraws a node, usually after `queue_redraw()` or when the node first appears. Background layers draw PNG textures for sky, hills, trees, or ground; the bubble draws `assets/bubble.png`; obstacles draw either `assets/sharp_plant.png` or `assets/mosquito.png`.
 
 ### Events and Signals
 
@@ -57,5 +59,6 @@ Godot calls these methods repeatedly while the game is running:
 - `main.gd::_on_bubble_popped()` receives `popped`, sets `game_over`, updates `best_score`, and shows the restart prompt.
 - `obstacle.gd::escaped` is emitted when an obstacle moves past the left or right edge. `main.gd::_on_obstacle_escaped()` removes it from the obstacle list and frees the node.
 - `main.gd::_on_viewport_size_changed()` runs when the window size changes and repositions the prompt label.
+
 
 
