@@ -2,9 +2,6 @@
 # CharacterBody2D gives us velocity and move_and_slide(), which are useful for movement.
 extends CharacterBody2D
 
-# This texture is loaded from a PNG game asset instead of being drawn from code-only shapes.
-const BUBBLE_TEXTURE := preload("res://assets/bubble.png")
-
 # popped is a custom signal.
 # Other scripts can connect to it and react when the bubble pops.
 signal popped
@@ -35,8 +32,6 @@ func _ready() -> void:
 	# If the scene has the expected collision shape, keep its radius matched to the script radius.
 	if collider and collider.shape is CircleShape2D:
 		collider.shape.radius = radius
-	# Ask Godot to call _draw() so the bubble becomes visible.
-	queue_redraw()
 
 # setup() resets the bubble for a new run.
 func setup(size: Vector2) -> void:
@@ -105,16 +100,4 @@ func pop() -> void:
 	modulate.a = 0.38
 	# Tell any connected script, such as main.gd, that the bubble popped.
 	popped.emit()
-
-# _draw() creates the bubble's visual appearance from the bubble PNG asset.
-func _draw() -> void:
-	# The texture is drawn centered on this CharacterBody2D's origin.
-	var top_left := Vector2(-radius, -radius)
-	# The drawn size matches the same radius used by the collision circle.
-	var size := Vector2(radius * 2.0, radius * 2.0)
-	# Draw the loaded PNG into the centered rectangle.
-	draw_texture_rect(BUBBLE_TEXTURE, Rect2(top_left, size), false)
-
-
-
 

@@ -12,13 +12,13 @@ A small Godot 4 2D endless runner prototype. The player is a bubble that bounces
 ## Structure
 
 - `scenes/Main.tscn` is the main scene.
-- `scenes/Bubble.tscn` is the reusable player bubble scene with its script and collision shape.
+- `scenes/Bubble.tscn` is the reusable player bubble scene with its `Sprite2D`, script, and collision shape.
 - `scripts/main.gd` runs spawning, scoring, and restart flow.
 - `assets/` contains the PNG game assets imported by Godot.
 - `scripts/background_layer.gd` draws the four requested background layers from PNG textures.
-- `scripts/bubble.gd` handles bubble movement, popping, and the bubble sprite texture.
-- `scenes/Mosquito.tscn` and `scripts/mosquito.gd` define mosquito obstacles.
-- `scenes/SharpPlant.tscn` and `scripts/sharp_plant.gd` define sharp plant obstacles.
+- `scripts/bubble.gd` handles bubble movement and popping; `Bubble.tscn` owns the bubble sprite texture.
+- `scenes/Mosquito.tscn` and `scripts/mosquito.gd` define mosquito obstacles; the scene owns the mosquito sprite texture.
+- `scenes/SharpPlant.tscn` and `scripts/sharp_plant.gd` define sharp plant obstacles; the scene owns the plant sprite texture.
 - `tools/generate_image_assets.ps1` regenerates the current PNG asset set.
 
 ## Runtime Flow
@@ -35,7 +35,7 @@ Godot starts at `scenes/Main.tscn`, which contains the root `Main` `Node2D` with
   - layer `2`: near trees and plants at `1.8181818 ft`, reversed from the old `0.55` scroll factor
   - layer `3`: immediate ground at `1.0 ft`, reversed from the old `1.0` scroll factor
 - `_build_world()` also instantiates `scenes/Bubble.tscn`, calls `bubble.gd::setup()`, connects the bubble's `popped` signal to `main.gd::_on_bubble_popped()`, and adds the bubble to the scene.
-- When the bubble enters the tree, `bubble.gd::_ready()` uses the `CollisionShape2D` child from `scenes/Bubble.tscn`, keeps its circle radius matched to the script, and requests its first draw using `assets/bubble.png`.
+- When the bubble enters the tree, `bubble.gd::_ready()` uses the `CollisionShape2D` child from `scenes/Bubble.tscn` and keeps its circle radius matched to the script. The visual comes from the scene's `Sprite2D` using `assets/bubble.png`.
 - `_build_ui()` creates the score label, speed label, and center prompt label.
 - `_start_run()` clears old obstacles, resets score and timers, resets the scroll speed to the baseline `245 px/s`, resets the bubble, and shows the initial control prompt.
 
@@ -49,7 +49,7 @@ Godot calls these methods repeatedly while the game is running:
 - `background_layer.gd::_process(delta)` runs every rendered frame for each background layer. Moving layers advance `offset_x` by `current_scroll_speed * speed_factor * delta` and call `queue_redraw()` so the layer scrolls right-to-left continuously, faster or slower based on the temporary rate adjustment.
 - `bubble.gd::_physics_process(delta)` runs on the physics tick. It applies bounce input, gravity, floor bounce, top-boundary clamping, and `move_and_slide()`.
 - `mosquito.gd::_process(delta)` and `sharp_plant.gd::_process(delta)` run every rendered frame for each obstacle. They move their obstacle left by the current immediate foreground speed and emit `escaped` when it leaves the screen.
-- `_draw()` methods run when Godot redraws a node, usually after `queue_redraw()` or when the node first appears. Background layers draw PNG textures for sky, hills, trees, or ground; the bubble draws `assets/bubble.png`; obstacles draw either `assets/sharp_plant.png` or `assets/mosquito.png`.
+- `background_layer.gd::_draw()` runs when Godot redraws a background layer and draws PNG textures for sky, hills, trees, or ground. Bubble and obstacle PNGs are assigned to `Sprite2D` nodes in their scenes, so their scripts do not load or draw those textures.
 
 ### Events and Signals
 
@@ -61,6 +61,7 @@ Godot calls these methods repeatedly while the game is running:
 - `main.gd::_on_bubble_popped()` receives `popped`, sets `game_over`, updates `best_score`, and shows the restart prompt.
 - `mosquito.gd::escaped` and `sharp_plant.gd::escaped` are emitted when an obstacle moves off screen. `main.gd::_on_obstacle_escaped()` removes it from the obstacle list and frees the node.
 - `main.gd::_on_viewport_size_changed()` runs when the window size changes and repositions the prompt label.
+
 
 
 

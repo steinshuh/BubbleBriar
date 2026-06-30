@@ -2,9 +2,6 @@
 # It is attached to scenes/SharpPlant.tscn.
 extends Area2D
 
-# This texture is loaded from a PNG game asset instead of being drawn from code-only shapes.
-const PLANT_TEXTURE := preload("res://assets/sharp_plant.png")
-
 # escaped is a custom signal emitted when the plant has moved off the left side.
 # main.gd listens for this signal so it can delete the obstacle.
 signal escaped(obstacle)
@@ -26,8 +23,6 @@ func setup(start_x: float, size: Vector2, move_speed: float) -> void:
 	position.x = start_x
 	# Plants sit on the ground.
 	position.y = size.y - 118.0
-	# Ask Godot to call _draw() so the plant becomes visible.
-	queue_redraw()
 
 # _ready() runs once when the plant enters the scene tree.
 func _ready() -> void:
@@ -49,9 +44,3 @@ func _on_body_entered(body: Node) -> void:
 	if body.has_method("pop"):
 		body.pop()
 
-# _draw() draws the plant PNG with its base near this node's origin.
-func _draw() -> void:
-	# The plant image is 128x160. Drawing it from y=-150 leaves its base at y=0.
-	var rect := Rect2(Vector2(-64.0, -150.0), Vector2(128.0, 160.0))
-	# Draw the loaded plant texture into that rectangle.
-	draw_texture_rect(PLANT_TEXTURE, rect, false)

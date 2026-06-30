@@ -2,9 +2,6 @@
 # It is attached to scenes/Mosquito.tscn.
 extends Area2D
 
-# This texture is loaded from a PNG game asset instead of being drawn from code-only shapes.
-const MOSQUITO_TEXTURE := preload("res://assets/mosquito.png")
-
 # escaped is a custom signal emitted when the mosquito has moved off the left side.
 # main.gd listens for this signal so it can delete the obstacle.
 signal escaped(obstacle)
@@ -26,8 +23,6 @@ func setup(start_x: float, size: Vector2, move_speed: float) -> void:
 	position.x = start_x
 	# Mosquitoes fly at a random air height.
 	position.y = randf_range(size.y * 0.24, size.y * 0.62)
-	# Ask Godot to call _draw() so the mosquito becomes visible.
-	queue_redraw()
 
 # _ready() runs once when the mosquito enters the scene tree.
 func _ready() -> void:
@@ -49,9 +44,3 @@ func _on_body_entered(body: Node) -> void:
 	if body.has_method("pop"):
 		body.pop()
 
-# _draw() draws the mosquito PNG centered on this node's origin.
-func _draw() -> void:
-	# The mosquito image is 128x96, so this rectangle centers it around (0, 0).
-	var rect := Rect2(Vector2(-64.0, -48.0), Vector2(128.0, 96.0))
-	# Draw the loaded mosquito texture into that rectangle.
-	draw_texture_rect(MOSQUITO_TEXTURE, rect, false)
