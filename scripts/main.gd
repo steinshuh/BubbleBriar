@@ -167,6 +167,8 @@ func _build_world() -> void:
 		var layer := BackgroundLayer.new()
 		# Tell the layer what to draw, how far away it is, current speed, and viewport size.
 		layer.setup(data[0], data[1], current_scroll_speed, viewport_size)
+		# Keep generated background layers visually behind the Bubble child that is already in Main.tscn.
+		layer.z_index = -100 + int(data[0])
 		# Remember the layer so we can update its speed when the rate adjustment changes.
 		background_layers.append(layer)
 		# Add the layer to the scene so Godot processes and draws it.
@@ -305,10 +307,3 @@ func _on_viewport_size_changed() -> void:
 		prompt_label.size = Vector2(viewport_size.x, 120)
 		# Move the prompt label to the same relative vertical position in the new window.
 		prompt_label.position = Vector2(0, viewport_size.y * 0.34)
-
-
-
-
-
-
-

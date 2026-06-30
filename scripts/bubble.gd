@@ -100,4 +100,3 @@ func pop() -> void:
 	modulate.a = 0.38
 	# Tell any connected script, such as main.gd, that the bubble popped.
 	popped.emit()
-
