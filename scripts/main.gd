@@ -5,8 +5,7 @@ extends Node2D
 # preload() loads another script before the game starts using it.
 # This constant lets us create new background layer objects in code.
 const BackgroundLayer := preload("res://scripts/background_layer.gd")
-# These constants preload reusable scenes that already contain their scripts and collision shapes.
-const BubbleScene := preload("res://scenes/Bubble.tscn")
+# These constants preload reusable obstacle scenes that are spawned during gameplay.
 const MosquitoScene := preload("res://scenes/Mosquito.tscn")
 const SharpPlantScene := preload("res://scenes/SharpPlant.tscn")
 
@@ -29,8 +28,8 @@ const SPAWN_MAX := 1.72
 # viewport_size stores the current window/game area size.
 # The default value is only a fallback before _ready() reads the real viewport size.
 var viewport_size := Vector2(1280, 720)
-# bubble will point to the player's Bubble node after _build_world() creates it.
-var bubble: CharacterBody2D
+# bubble points to the Bubble scene instance placed directly in Main.tscn.
+@onready var bubble: CharacterBody2D = $Bubble
 # background_layers stores the four parallax layer nodes so their speed can be updated.
 var background_layers: Array[Node2D] = []
 # current_scroll_speed is the player's effective horizontal speed through the world.
@@ -66,7 +65,7 @@ func _ready() -> void:
 	viewport_size = get_viewport_rect().size
 	# Connect Godot's size_changed signal to our function so the UI adapts when the window resizes.
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
-	# Create and add the parallax background layers and the player bubble.
+	# Create and add the parallax background layers.
 	_build_world()
 	# Create and add the score, speed, and prompt UI labels.
 	_build_ui()
@@ -152,7 +151,7 @@ func _update_speed_label() -> void:
 	# Show the actual continual forward speed after temporary Left/Right adjustment.
 	speed_label.text = "Forward %.0f px/s" % current_scroll_speed
 
-# _build_world() creates the gameplay objects that are not already placed in Main.tscn.
+# _build_world() creates gameplay objects that are still generated from code.
 func _build_world() -> void:
 	# Each item has two values: the layer type and its notional distance in feet.
 	# These feet values are reversed from the old speed factors using feet = 1 / factor:
@@ -173,14 +172,10 @@ func _build_world() -> void:
 		# Add the layer to the scene so Godot processes and draws it.
 		add_child(layer)
 
-	# Create the player bubble node from the preloaded Bubble scene.
-	bubble = BubbleScene.instantiate()
-	# Reset the bubble's position, velocity, and alive state.
+	# The Bubble node is already instanced in Main.tscn, so this script only connects and resets it.
 	bubble.setup(viewport_size)
 	# Connect the bubble's popped signal to our game-over function.
 	bubble.popped.connect(_on_bubble_popped)
-	# Add the bubble after the backgrounds so it draws in front of them.
-	add_child(bubble)
 
 # _build_ui() creates labels for score, speed, instructions, and game-over text.
 func _build_ui() -> void:
@@ -310,6 +305,7 @@ func _on_viewport_size_changed() -> void:
 		prompt_label.size = Vector2(viewport_size.x, 120)
 		# Move the prompt label to the same relative vertical position in the new window.
 		prompt_label.position = Vector2(0, viewport_size.y * 0.34)
+
 
 
 

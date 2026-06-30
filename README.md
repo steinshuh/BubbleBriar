@@ -34,7 +34,7 @@ Godot starts at `scenes/Main.tscn`, which contains the root `Main` `Node2D` with
   - layer `1`: far hills at `4.5454545 ft`, reversed from the old `0.22` scroll factor
   - layer `2`: near trees and plants at `1.8181818 ft`, reversed from the old `0.55` scroll factor
   - layer `3`: immediate ground at `1.0 ft`, reversed from the old `1.0` scroll factor
-- `_build_world()` also instantiates `scenes/Bubble.tscn`, calls `bubble.gd::setup()`, connects the bubble's `popped` signal to `main.gd::_on_bubble_popped()`, and adds the bubble to the scene.
+- `scenes/Main.tscn` includes an instance of `scenes/Bubble.tscn`; `_build_world()` calls `bubble.gd::setup()` on that existing child and connects the bubble's `popped` signal to `main.gd::_on_bubble_popped()`.
 - When the bubble enters the tree, `bubble.gd::_ready()` uses the `CollisionShape2D` child from `scenes/Bubble.tscn` and keeps its circle radius matched to the script. The visual comes from the scene's `Sprite2D` using `assets/bubble.png`.
 - `_build_ui()` creates the score label, speed label, and center prompt label.
 - `_start_run()` clears old obstacles, resets score and timers, resets the scroll speed to the baseline `245 px/s`, resets the bubble, and shows the initial control prompt.
@@ -61,6 +61,7 @@ Godot calls these methods repeatedly while the game is running:
 - `main.gd::_on_bubble_popped()` receives `popped`, sets `game_over`, updates `best_score`, and shows the restart prompt.
 - `mosquito.gd::escaped` and `sharp_plant.gd::escaped` are emitted when an obstacle moves off screen. `main.gd::_on_obstacle_escaped()` removes it from the obstacle list and frees the node.
 - `main.gd::_on_viewport_size_changed()` runs when the window size changes and repositions the prompt label.
+
 
 
 
