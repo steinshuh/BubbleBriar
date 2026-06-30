@@ -30,16 +30,11 @@ var viewport_size := Vector2(1280, 720)
 
 # _ready() runs once when the bubble enters the scene tree.
 func _ready() -> void:
-	# Create a circular collision shape resource.
-	var shape := CircleShape2D.new()
-	# Match the collision circle radius to the visible bubble radius.
-	shape.radius = radius
-	# CollisionShape2D is the node that holds the collision shape in the scene tree.
-	var collider := CollisionShape2D.new()
-	# Assign the circular shape to the collision node.
-	collider.shape = shape
-	# Add the collision node as a child of the bubble so physics can detect hits.
-	add_child(collider)
+	# The reusable Bubble scene already contains a CollisionShape2D child.
+	var collider := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	# If the scene has the expected collision shape, keep its radius matched to the script radius.
+	if collider and collider.shape is CircleShape2D:
+		collider.shape.radius = radius
 	# Ask Godot to call _draw() so the bubble becomes visible.
 	queue_redraw()
 
@@ -119,6 +114,7 @@ func _draw() -> void:
 	var size := Vector2(radius * 2.0, radius * 2.0)
 	# Draw the loaded PNG into the centered rectangle.
 	draw_texture_rect(BUBBLE_TEXTURE, Rect2(top_left, size), false)
+
 
 
 

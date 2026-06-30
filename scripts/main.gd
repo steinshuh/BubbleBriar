@@ -3,10 +3,11 @@
 extends Node2D
 
 # preload() loads another script before the game starts using it.
-# These constants let us create new background, bubble, and obstacle objects in code.
+# These constants let us create new background and obstacle objects in code.
 const BackgroundLayer := preload("res://scripts/background_layer.gd")
-const Bubble := preload("res://scripts/bubble.gd")
 const Obstacle := preload("res://scripts/obstacle.gd")
+# This constant preloads the Bubble scene, which contains the bubble node and its collision shape.
+const BubbleScene := preload("res://scenes/Bubble.tscn")
 
 # BASE_SCROLL_SPEED is the continual forward speed of the bubble through the world.
 # The bubble stays fixed on screen, so this speed is shown by scrolling the world left.
@@ -171,8 +172,8 @@ func _build_world() -> void:
 		# Add the layer to the scene so Godot processes and draws it.
 		add_child(layer)
 
-	# Create the player bubble node from the preloaded script.
-	bubble = Bubble.new()
+	# Create the player bubble node from the preloaded Bubble scene.
+	bubble = BubbleScene.instantiate()
 	# Reset the bubble's position, velocity, and alive state.
 	bubble.setup(viewport_size)
 	# Connect the bubble's popped signal to our game-over function.
@@ -308,5 +309,6 @@ func _on_viewport_size_changed() -> void:
 		prompt_label.size = Vector2(viewport_size.x, 120)
 		# Move the prompt label to the same relative vertical position in the new window.
 		prompt_label.position = Vector2(0, viewport_size.y * 0.34)
+
 
 
