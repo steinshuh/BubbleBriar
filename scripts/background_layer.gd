@@ -20,7 +20,7 @@ const GROUND_TEXTURE := preload("res://assets/ground.png")
 # It is computed from distance_feet instead of being entered directly.
 @export var speed_factor := 0.0
 # world_speed is the current scroll speed passed in by main.gd.
-# It can be positive for forward movement or negative for backward movement.
+# It stays positive, with Left/Right temporarily making it slower or faster.
 @export var world_speed := 0.0
 
 # viewport_size stores the current visible game area, used for drawing at the right size.
@@ -72,7 +72,7 @@ func _texture_for_layer(kind: int) -> Texture2D:
 
 # set_scroll_speed() lets main.gd change the current scrolling speed every frame.
 func set_scroll_speed(speed: float) -> void:
-	# Store the new speed. Positive scrolls the world left; negative scrolls it right.
+	# Store the new speed. Larger values scroll the world left faster.
 	world_speed = speed
 
 # _speed_factor_from_distance() converts notional feet into a parallax multiplier.
@@ -89,7 +89,7 @@ func _process(delta: float) -> void:
 	# A speed factor of 0.0 is the stationary sky/mountain layer, so it should not move.
 	if speed_factor > 0.0:
 		# Move the horizontal offset based on current speed, parallax factor, and frame time.
-		# fposmod() wraps both positive and negative scrolling into the 0..tile_width range.
+		# fposmod() wraps scrolling into the 0..tile_width range so the tiled image loops forever.
 		offset_x = fposmod(offset_x + world_speed * speed_factor * delta, tile_width)
 		# The offset changed, so the layer must be redrawn in its new position.
 		queue_redraw()
@@ -109,3 +109,4 @@ func _draw() -> void:
 		var x := tile * tile_width - offset_x
 		# Draw the PNG scaled to cover this layer's full viewport-sized tile.
 		draw_texture_rect(layer_texture, Rect2(Vector2(x, 0.0), Vector2(tile_width, viewport_size.y)), false)
+

@@ -8,20 +8,20 @@ const BackgroundLayer := preload("res://scripts/background_layer.gd")
 const Bubble := preload("res://scripts/bubble.gd")
 const Obstacle := preload("res://scripts/obstacle.gd")
 
-# START_SCROLL_SPEED is the speed the game uses at the start of each run.
-# It matches the old fixed BASE_SPEED value so the game initially feels the same as before.
-const START_SCROLL_SPEED := 245.0
-# ACCELERATION is how quickly holding forward/backward changes the scroll speed.
-const ACCELERATION := 360.0
-# DRAG is how quickly the scroll speed eases back toward 0 when no horizontal key is held.
-const DRAG := 120.0
-# MAX_FORWARD_SPEED is the fastest forward scroll speed.
-const MAX_FORWARD_SPEED := 520.0
-# MAX_BACKWARD_SPEED is the fastest backward scroll speed.
-const MAX_BACKWARD_SPEED := -260.0
-# SPAWN_MIN is the shortest time, in seconds, between obstacle spawns at starting speed.
+# BASE_SCROLL_SPEED is the continual forward speed of the bubble through the world.
+# The bubble stays fixed on screen, so this speed is shown by scrolling the world left.
+const BASE_SCROLL_SPEED := 245.0
+# RATE_ADJUST_ACCEL is how quickly holding Left/Right changes the temporary speed adjustment.
+const RATE_ADJUST_ACCEL := 360.0
+# RATE_ADJUST_RETURN is how quickly the temporary adjustment eases back to 0 when no key is held.
+const RATE_ADJUST_RETURN := 220.0
+# MAX_SPEED_BONUS is the largest temporary speed increase above BASE_SCROLL_SPEED.
+const MAX_SPEED_BONUS := 220.0
+# MAX_SPEED_PENALTY is the largest temporary speed decrease below BASE_SCROLL_SPEED.
+const MAX_SPEED_PENALTY := -150.0
+# SPAWN_MIN is the shortest time, in seconds, between obstacle spawns at baseline speed.
 const SPAWN_MIN := 1.05
-# SPAWN_MAX is the longest time, in seconds, between obstacle spawns at starting speed.
+# SPAWN_MAX is the longest time, in seconds, between obstacle spawns at baseline speed.
 const SPAWN_MAX := 1.72
 
 # viewport_size stores the current window/game area size.
@@ -33,7 +33,10 @@ var bubble: CharacterBody2D
 var background_layers: Array[Node2D] = []
 # current_scroll_speed is the player's effective horizontal speed through the world.
 # The bubble's x position stays constant; this speed moves the world instead.
-var current_scroll_speed := START_SCROLL_SPEED
+var current_scroll_speed := BASE_SCROLL_SPEED
+# speed_adjustment is a temporary offset caused by holding Left/Right.
+# It returns to 0 when the player releases horizontal input.
+var speed_adjustment := 0.0
 # spawn_timer counts down every frame until it reaches zero and creates an obstacle.
 var spawn_timer := 0.0
 # score counts how many obstacles the bubble has successfully passed.
@@ -47,7 +50,7 @@ var obstacles: Array[Area2D] = []
 
 # score_label is the UI text in the top-left corner.
 var score_label: Label
-# speed_label is the UI text that shows the current forward/backward scroll speed.
+# speed_label is the UI text that shows the current continual forward scroll speed.
 var speed_label: Label
 # prompt_label is the centered UI text for controls and game-over messages.
 var prompt_label: Label
@@ -82,18 +85,15 @@ func _process(delta: float) -> void:
 		# Stop here so no obstacles spawn and no score changes while the game is over.
 		return
 
-	# Read acceleration input and update the world scroll speed.
+	# Read Left/Right input and update the temporary world-speed adjustment.
 	_update_scroll_speed(delta)
 	# Send the new scroll speed to all parallax layers and active obstacles.
 	_apply_scroll_speed()
-	# Update the visible speed label so the player can see forward/backward movement.
+	# Update the visible speed label so the player can see the temporary rate change.
 	_update_speed_label()
 
-	# Only count spawn time while the player is moving forward.
-	# Backward movement scrolls existing objects back to the right instead of creating new hazards.
-	if current_scroll_speed > 0.0:
-		# Scale spawn countdown by speed so faster travel produces obstacles sooner by distance.
-		spawn_timer -= delta * (current_scroll_speed / START_SCROLL_SPEED)
+	# Scale spawn countdown by speed so faster travel produces obstacles sooner by distance.
+	spawn_timer -= delta * (current_scroll_speed / BASE_SCROLL_SPEED)
 	# When the timer reaches zero or below, it is time to create a new obstacle.
 	if spawn_timer <= 0.0:
 		# Add either a plant or mosquito to the scene.
@@ -113,24 +113,26 @@ func _process(delta: float) -> void:
 			# Update the visible score text.
 			score_label.text = "Score %d" % score
 
-# _update_scroll_speed() changes world speed from keyboard input.
+# _update_scroll_speed() changes the temporary world-speed adjustment from keyboard input.
 func _update_scroll_speed(delta: float) -> void:
-	# input_direction will be 1 for forward, -1 for backward, and 0 for no horizontal input.
+	# input_direction will be 1 for faster, -1 for slower, and 0 for no horizontal input.
 	var input_direction := 0.0
-	# Right arrow or D means accelerate forward through the level.
+	# Right arrow or D means temporarily increase the forward rate.
 	if Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D):
 		input_direction += 1.0
-	# Left arrow or A means accelerate backward through the level.
+	# Left arrow or A means temporarily decrease the forward rate.
 	if Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A):
 		input_direction -= 1.0
-	# If the player is pressing forward or backward, accelerate in that direction.
+	# If the player is pressing Left or Right, move the temporary adjustment in that direction.
 	if input_direction != 0.0:
-		current_scroll_speed += input_direction * ACCELERATION * delta
-	# If no horizontal key is held, gradually reduce speed toward 0.
+		speed_adjustment += input_direction * RATE_ADJUST_ACCEL * delta
+	# If no horizontal key is held, ease the adjustment back to 0 so baseline motion resumes.
 	else:
-		current_scroll_speed = move_toward(current_scroll_speed, 0.0, DRAG * delta)
-	# Keep speed inside the allowed backward and forward limits.
-	current_scroll_speed = clamp(current_scroll_speed, MAX_BACKWARD_SPEED, MAX_FORWARD_SPEED)
+		speed_adjustment = move_toward(speed_adjustment, 0.0, RATE_ADJUST_RETURN * delta)
+	# Keep the temporary adjustment inside its allowed slower/faster range.
+	speed_adjustment = clamp(speed_adjustment, MAX_SPEED_PENALTY, MAX_SPEED_BONUS)
+	# The bubble always moves forward because the baseline speed is always included.
+	current_scroll_speed = BASE_SCROLL_SPEED + speed_adjustment
 
 # _apply_scroll_speed() sends current_scroll_speed to every node that scrolls horizontally.
 func _apply_scroll_speed() -> void:
@@ -140,15 +142,13 @@ func _apply_scroll_speed() -> void:
 		layer.set_scroll_speed(current_scroll_speed)
 	# Update every active obstacle so hazards move with the same immediate foreground speed.
 	for obstacle in obstacles:
-		# Obstacle speed can be positive or negative, which moves it left or right.
+		# Obstacle speed is always positive because the world continually moves forward.
 		obstacle.speed = current_scroll_speed
 
 # _update_speed_label() displays current scroll speed in the UI.
 func _update_speed_label() -> void:
-	# Positive means forward, negative means backward.
-	var direction := "Forward" if current_scroll_speed >= 0.0 else "Backward"
-	# abs() hides the minus sign because the word already explains the direction.
-	speed_label.text = "%s %.0f px/s" % [direction, abs(current_scroll_speed)]
+	# Show the actual continual forward speed after temporary Left/Right adjustment.
+	speed_label.text = "Forward %.0f px/s" % current_scroll_speed
 
 # _build_world() creates the gameplay objects that are not already placed in Main.tscn.
 func _build_world() -> void:
@@ -166,7 +166,7 @@ func _build_world() -> void:
 		var layer := BackgroundLayer.new()
 		# Tell the layer what to draw, how far away it is, current speed, and viewport size.
 		layer.setup(data[0], data[1], current_scroll_speed, viewport_size)
-		# Remember the layer so we can update its speed when the player accelerates.
+		# Remember the layer so we can update its speed when the rate adjustment changes.
 		background_layers.append(layer)
 		# Add the layer to the scene so Godot processes and draws it.
 		add_child(layer)
@@ -244,8 +244,10 @@ func _start_run() -> void:
 	score = 0
 	# Mark the game as active again.
 	game_over = false
-	# Reset scroll speed to the old fixed speed so the beginning matches the original version.
-	current_scroll_speed = START_SCROLL_SPEED
+	# Reset the temporary rate adjustment so the run starts at baseline speed.
+	speed_adjustment = 0.0
+	# Reset scroll speed to the baseline speed.
+	current_scroll_speed = BASE_SCROLL_SPEED
 	# Send the reset speed to layers before the first new obstacle appears.
 	_apply_scroll_speed()
 	# Spawn the first obstacle shortly after the run begins.
@@ -255,7 +257,7 @@ func _start_run() -> void:
 	# Reset the visible speed text.
 	_update_speed_label()
 	# Show the controls briefly at the beginning of a run.
-	prompt_label.text = "Space/Up/click bounce\nRight/D accelerate forward, Left/A backward"
+	prompt_label.text = "Space/Up/click bounce\nRight/D speed up, Left/A slow down"
 	# Reset the bubble's position, movement, opacity, and alive state.
 	bubble.setup(viewport_size)
 	# Wait 1.6 seconds before hiding the prompt.
@@ -306,3 +308,5 @@ func _on_viewport_size_changed() -> void:
 		prompt_label.size = Vector2(viewport_size.x, 120)
 		# Move the prompt label to the same relative vertical position in the new window.
 		prompt_label.position = Vector2(0, viewport_size.y * 0.34)
+
+

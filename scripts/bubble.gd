@@ -81,7 +81,7 @@ func _physics_process(delta: float) -> void:
 	velocity.y = min(velocity.y + GRAVITY * delta, MAX_FALL)
 	# Move the CharacterBody2D using Godot's built-in sliding movement.
 	move_and_slide()
-	# Keep the bubble's x coordinate constant; forward/backward input changes world scroll speed instead.
+	# Keep the bubble's x coordinate constant; Left/Right input changes only the world scroll rate.
 	position.x = fixed_x
 
 	# floor_y is the highest y position the bubble's bottom edge may touch.
@@ -119,5 +119,6 @@ func _draw() -> void:
 	var size := Vector2(radius * 2.0, radius * 2.0)
 	# Draw the loaded PNG into the centered rectangle.
 	draw_texture_rect(BUBBLE_TEXTURE, Rect2(top_left, size), false)
+
 
 
