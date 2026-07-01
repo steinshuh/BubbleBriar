@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://beujohtnom6t8"
-path="res://.godot/imported/ChatGPT Image Jul 1, 2026, 11_02_57 AM.png-a19790420eb2cce694734f6436cf9339.ctex"
+uid="uid://f0wom5t7pht5"
+path="res://.godot/imported/mosquito_sheet.png-5e87493726508ed27b11c8b66ad6b7c1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ChatGPT Image Jul 1, 2026, 11_02_57 AM.png"
-dest_files=["res://.godot/imported/ChatGPT Image Jul 1, 2026, 11_02_57 AM.png-a19790420eb2cce694734f6436cf9339.ctex"]
+source_file="res://assets/mosquito_sheet.png"
+dest_files=["res://.godot/imported/mosquito_sheet.png-5e87493726508ed27b11c8b66ad6b7c1.ctex"]
 
 [params]
 
