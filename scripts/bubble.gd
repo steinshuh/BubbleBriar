@@ -5,6 +5,9 @@ extends CharacterBody2D
 # popped is a custom signal.
 # Other scripts can connect to it and react when the bubble pops.
 signal popped
+# ground_bounced is a custom signal.
+# Main listens for it and awards one point when the bubble bounces off the ground.
+signal ground_bounced
 
 # GRAVITY is how quickly the bubble accelerates downward.
 const GRAVITY := 920.0
@@ -120,6 +123,8 @@ func _physics_process(delta: float) -> void:
 		position.y = floor_y - radius
 		# Bounce upward from the floor.
 		velocity.y = FLOOR_BOUNCE
+		# Tell the main scene that a real ground bounce happened, which is when scoring occurs.
+		ground_bounced.emit()
 	# If the bubble's top edge goes above the screen, clamp it inside the screen.
 	if position.y - radius < 0.0:
 		# Put the bubble exactly at the top boundary.

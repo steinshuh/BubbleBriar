@@ -49,7 +49,7 @@ var current_scroll_speed := BASE_SCROLL_SPEED
 var speed_adjustment := 0.0
 # spawn_timer counts down every frame until it reaches zero and creates an obstacle.
 var spawn_timer := 0.0
-# score counts how many obstacles the bubble has successfully passed.
+# score counts how many times the bubble has bounced off the ground.
 var score := 0
 # best_score remembers the best score reached during this play session.
 var best_score := 0
@@ -121,6 +121,7 @@ func _on_background_music_finished() -> void:
 	current_background_music_index = 1 - current_background_music_index
 	# Start the newly selected track.
 	_play_current_background_music()
+
 # _process(delta) is called once per rendered frame.
 # delta is the amount of time, in seconds, since the previous frame.
 func _process(delta: float) -> void:
@@ -151,21 +152,6 @@ func _process(delta: float) -> void:
 		# Pick a new random wait time before the next obstacle appears.
 		spawn_timer = randf_range(SPAWN_MIN, SPAWN_MAX)
 
-	# Check every active obstacle to see if the bubble has passed it.
-	for obstacle in obstacles:
-		# obstacle.passed prevents one obstacle from giving points more than once.
-		# obstacle.position.x < bubble.position.x means the obstacle moved left of the bubble.
-		if not obstacle.get("passed") and obstacle.position.x < bubble.position.x:
-			# Mark this obstacle as already scored.
-			obstacle.set("passed", true)
-			# Add one point for passing the obstacle.
-			score += 1
-			# Restart the point sound so rapid point gains still play the bell clearly.
-			point_sound.stop()
-			# Play the small soft bell ring assigned in the Main scene.
-			point_sound.play()
-			# Update the visible score text.
-			score_label.text = "Score %d" % score
 
 # _update_scroll_speed() changes the temporary world-speed adjustment from keyboard input.
 func _update_scroll_speed(delta: float) -> void:
@@ -231,6 +217,8 @@ func _build_world() -> void:
 	bubble.setup(viewport_size)
 	# Connect the bubble's popped signal to our game-over function.
 	bubble.popped.connect(_on_bubble_popped)
+	# Connect the bubble's ground_bounced signal so score changes only when the bubble hits the ground.
+	bubble.ground_bounced.connect(_on_bubble_ground_bounced)
 
 # _build_ui() creates labels for score, speed, instructions, and game-over text.
 func _build_ui() -> void:
@@ -337,6 +325,20 @@ func _spawn_obstacle() -> void:
 	obstacles.append(obstacle)
 	# Add it to the scene so Godot processes, collides, and draws it.
 	add_child(obstacle)
+
+# _on_bubble_ground_bounced() runs when the living bubble hits the floor and bounces upward.
+func _on_bubble_ground_bounced() -> void:
+	# Do not award points after game over, even if a late signal somehow arrives.
+	if game_over:
+		return
+	# Add one point for this ground bounce.
+	score += 1
+	# Restart the point sound so quick repeated bounces still play the bell clearly.
+	point_sound.stop()
+	# Play the small soft bell ring assigned in the Main scene.
+	point_sound.play()
+	# Update the visible score text.
+	score_label.text = "Score %d" % score
 
 # _on_obstacle_escaped() runs when an obstacle moves off the left edge.
 func _on_obstacle_escaped(obstacle: Area2D) -> void:
