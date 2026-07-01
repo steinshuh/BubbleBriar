@@ -39,6 +39,12 @@ var pop_animation_playing := false
 # sprite points to the Sprite2D child in scenes/Bubble.tscn.
 # The texture is assigned in the scene, so this script does not load image files.
 @onready var sprite := $Sprite2D as Sprite2D
+# pop_sound points to the AudioStreamPlayer2D child that plays the bubble pop sound.
+# The WAV file is assigned in scenes/Bubble.tscn, so this script does not load audio files.
+@onready var pop_sound := $PopSound as AudioStreamPlayer2D
+# breeze_sound points to the AudioStreamPlayer2D child that plays when the player bounces.
+# The WAV file is assigned in scenes/Bubble.tscn, so this script does not load audio files.
+@onready var breeze_sound := $BreezeSound as AudioStreamPlayer2D
 
 # _ready() runs once when the bubble enters the scene tree.
 func _ready() -> void:
@@ -93,6 +99,10 @@ func _physics_process(delta: float) -> void:
 	if Input.is_action_just_pressed("bounce") or Input.is_action_just_pressed("ui_accept"):
 		# Set upward velocity, creating the bounce/flap feeling.
 		velocity.y = BOUNCE_VELOCITY
+		# Restart the breeze sound so repeated player actions are audible immediately.
+		breeze_sound.stop()
+		# Play the soft breeze sound assigned in the Bubble scene.
+		breeze_sound.play()
 
 	# Add gravity to the vertical velocity, but do not let it exceed MAX_FALL.
 	velocity.y = min(velocity.y + GRAVITY * delta, MAX_FALL)
@@ -160,5 +170,9 @@ func pop() -> void:
 	pop_animation_frame = 0
 	# Show frame 0 immediately when the bubble pops.
 	sprite.frame = pop_animation_frame
+	# Restart the pop sound from the beginning in case this Bubble node was reused after a reset.
+	pop_sound.stop()
+	# Play the bubble popping WAV assigned in the Bubble scene.
+	pop_sound.play()
 	# Tell any connected script, such as main.gd, that the bubble popped.
 	popped.emit()

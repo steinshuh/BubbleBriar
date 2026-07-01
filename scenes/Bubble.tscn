@@ -1,7 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://bubblebriar_bubble"]
+[gd_scene load_steps=6 format=3 uid="uid://bubblebriar_bubble"]
 
 [ext_resource type="Script" path="res://scripts/bubble.gd" id="1_bubble"]
 [ext_resource type="Texture2D" path="res://assets/bubble_sheet.png" id="2_bubble_texture"]
+[ext_resource type="AudioStream" path="res://assets/sounds/bubble_popping.wav" id="3_pop_sound"]
+[ext_resource type="AudioStream" path="res://assets/sounds/soft_breeze.wav" id="4_breeze_sound"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_bubble"]
 radius = 31.0
@@ -17,3 +19,11 @@ vframes = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_bubble")
+
+[node name="PopSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("3_pop_sound")
+volume_db = -2.0
+
+[node name="BreezeSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("4_breeze_sound")
+volume_db = -6.0

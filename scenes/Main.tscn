@@ -1,9 +1,24 @@
-[gd_scene load_steps=3 format=3 uid="uid://bubblebriar_main"]
+[gd_scene load_steps=6 format=3 uid="uid://bubblebriar_main"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/Bubble.tscn" id="2_bubble"]
+[ext_resource type="AudioStream" path="res://assets/sounds/background1.wav" id="3_background_1"]
+[ext_resource type="AudioStream" path="res://assets/sounds/background2.wav" id="4_background_2"]
+[ext_resource type="AudioStream" path="res://assets/sounds/small_soft_bell_ring.wav" id="5_point_sound"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
 [node name="Bubble" parent="." instance=ExtResource("2_bubble")]
+
+[node name="BackgroundMusic1" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_background_1")
+volume_db = -9.0
+
+[node name="BackgroundMusic2" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_background_2")
+volume_db = -9.0
+
+[node name="PointSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_point_sound")
+volume_db = -4.0

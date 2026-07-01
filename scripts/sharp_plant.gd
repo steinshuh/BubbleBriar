@@ -45,4 +45,3 @@ func _on_body_entered(body: Node) -> void:
 	# Check for a pop() method so the plant can pop the bubble without depending on its exact class.
 	if body.has_method("pop"):
 		body.pop()
-

@@ -30,6 +30,15 @@ const SPAWN_MAX := 1.72
 var viewport_size := Vector2(1280, 720)
 # bubble points to the Bubble scene instance placed directly in Main.tscn.
 @onready var bubble: CharacterBody2D = $Bubble
+# background_music_1 points to the first AudioStreamPlayer child in Main.tscn.
+# Its WAV file is assigned in the scene instead of loaded by this script.
+@onready var background_music_1 := $BackgroundMusic1 as AudioStreamPlayer
+# background_music_2 points to the second AudioStreamPlayer child in Main.tscn.
+# The script alternates between this player and background_music_1.
+@onready var background_music_2 := $BackgroundMusic2 as AudioStreamPlayer
+# point_sound points to the AudioStreamPlayer child that plays when the player earns a point.
+# The bell WAV is assigned in Main.tscn, so this script does not load audio files.
+@onready var point_sound := $PointSound as AudioStreamPlayer
 # background_layers stores the four parallax layer nodes so their speed can be updated.
 var background_layers: Array[Node2D] = []
 # current_scroll_speed is the player's effective horizontal speed through the world.
@@ -48,6 +57,9 @@ var best_score := 0
 var game_over := false
 # obstacles stores all active obstacle nodes so the main script can score and clear them.
 var obstacles: Array[Area2D] = []
+# current_background_music_index remembers which background track should play next.
+# 0 means background_music_1; 1 means background_music_2.
+var current_background_music_index := 0
 
 # score_label is the UI text in the top-left corner.
 var score_label: Label
@@ -69,9 +81,46 @@ func _ready() -> void:
 	_build_world()
 	# Create and add the score, speed, and prompt UI labels.
 	_build_ui()
+	# Connect and start alternating background music tracks.
+	_start_background_music()
 	# Start the first run by resetting score, bubble position, timers, and prompts.
 	_start_run()
 
+# _start_background_music() connects the two music players and starts the first track.
+func _start_background_music() -> void:
+	# Connect background_music_1's finished signal only if it has not already been connected.
+	if not background_music_1.finished.is_connected(_on_background_music_finished):
+		# When track 1 finishes, Godot calls _on_background_music_finished().
+		background_music_1.finished.connect(_on_background_music_finished)
+	# Connect background_music_2's finished signal only if it has not already been connected.
+	if not background_music_2.finished.is_connected(_on_background_music_finished):
+		# When track 2 finishes, Godot calls the same function so the tracks can alternate forever.
+		background_music_2.finished.connect(_on_background_music_finished)
+	# Start with the first background track whenever the main scene is created.
+	current_background_music_index = 0
+	# Play the selected track.
+	_play_current_background_music()
+
+# _play_current_background_music() starts whichever background track current_background_music_index selects.
+func _play_current_background_music() -> void:
+	# Stop both players first so only one background song can be heard at a time.
+	background_music_1.stop()
+	background_music_2.stop()
+	# If the selected index is 0, play background1.wav.
+	if current_background_music_index == 0:
+		# Start the first background track from its beginning.
+		background_music_1.play()
+	# Otherwise, play background2.wav.
+	else:
+		# Start the second background track from its beginning.
+		background_music_2.play()
+
+# _on_background_music_finished() runs whenever the active background track reaches its end.
+func _on_background_music_finished() -> void:
+	# Flip 0 to 1 or 1 to 0 so the next track alternates from the one that just ended.
+	current_background_music_index = 1 - current_background_music_index
+	# Start the newly selected track.
+	_play_current_background_music()
 # _process(delta) is called once per rendered frame.
 # delta is the amount of time, in seconds, since the previous frame.
 func _process(delta: float) -> void:
@@ -111,6 +160,10 @@ func _process(delta: float) -> void:
 			obstacle.set("passed", true)
 			# Add one point for passing the obstacle.
 			score += 1
+			# Restart the point sound so rapid point gains still play the bell clearly.
+			point_sound.stop()
+			# Play the small soft bell ring assigned in the Main scene.
+			point_sound.play()
 			# Update the visible score text.
 			score_label.text = "Score %d" % score
 
@@ -274,6 +327,10 @@ func _spawn_obstacle() -> void:
 	var obstacle := obstacle_scene.instantiate() as Area2D
 	# Position the obstacle slightly beyond the right edge so it scrolls into view.
 	obstacle.call("setup", viewport_size.x + 90.0, viewport_size, current_scroll_speed)
+	# Mosquitoes need the bubble position so their loop volume can react to distance.
+	if obstacle.has_method("set_bubble_target"):
+		# Sharp plants do not have this method, so only mosquitoes receive the bubble reference.
+		obstacle.call("set_bubble_target", bubble)
 	# Connect the obstacle's escaped signal so we know when to remove it.
 	obstacle.connect("escaped", Callable(self, "_on_obstacle_escaped"))
 	# Store it in the active obstacles list for scoring and cleanup.
