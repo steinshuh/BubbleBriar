@@ -11,7 +11,7 @@ const GROUND_TEXTURE := preload("res://assets/ground.png")
 
 # NEAR_TREES_VERTICAL_OFFSET moves the near-tree artwork down on the screen.
 # A positive y offset means the image starts lower, so less of the high tree tops are visible.
-const NEAR_TREES_VERTICAL_OFFSET := 170.0
+const NEAR_TREES_VERTICAL_OFFSET := 175.0
 
 # @export means the value can be edited in Godot's Inspector if the node is placed in a scene.
 # layer_kind chooses what this layer draws: 0 sky, 1 far hills, 2 near trees, 3 ground.
@@ -129,4 +129,3 @@ func _draw() -> void:
 		var x := tile * tile_width - offset_x
 		# Draw the PNG scaled to cover this layer's full viewport-sized tile.
 		draw_texture_rect(layer_texture, Rect2(Vector2(x, draw_offset_y), Vector2(tile_width, viewport_size.y)), false)
-

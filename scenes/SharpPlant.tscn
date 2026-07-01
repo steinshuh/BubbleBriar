@@ -11,7 +11,8 @@ height = 116.0
 script = ExtResource("1_sharp_plant")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(0, -70)
+scale = Vector2(0.1, 0.1)
+position = Vector2(0, -60)
 texture = ExtResource("2_sharp_plant_texture")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

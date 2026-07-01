@@ -74,8 +74,9 @@ func _physics_process(delta: float) -> void:
 	# Keep the bubble's x coordinate constant; Left/Right input changes only the world scroll rate.
 	position.x = fixed_x
 
-	# floor_y is the highest y position the bubble's bottom edge may touch.
-	var floor_y := viewport_size.y - 118.0
+	# floor_y is the lowest y position the bubble's bottom edge may touch before bouncing.
+	# Subtracting 88 instead of 118 moves that bounce limit 30 pixels lower on the screen.
+	var floor_y := viewport_size.y - 88.0
 	# If the bubble's bottom edge has gone below the floor, push it back up.
 	if position.y + radius > floor_y:
 		# Place the bubble exactly on top of the floor.

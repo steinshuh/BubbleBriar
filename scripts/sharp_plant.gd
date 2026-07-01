@@ -22,7 +22,9 @@ func setup(start_x: float, size: Vector2, move_speed: float) -> void:
 	# Put the plant just off the right side of the screen.
 	position.x = start_x
 	# Plants sit on the ground.
-	position.y = size.y - 118.0
+	# Subtracting 76 instead of 118 places the whole plant scene 42 pixels lower.
+	# Because this moves the root Area2D, the sprite, real hitbox, and debug hitbox all move together.
+	position.y = size.y - 76.0
 
 # _ready() runs once when the plant enters the scene tree.
 func _ready() -> void:
