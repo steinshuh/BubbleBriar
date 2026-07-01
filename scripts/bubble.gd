@@ -15,6 +15,12 @@ const BOUNCE_VELOCITY := -420.0
 const FLOOR_BOUNCE := -520.0
 # MAX_FALL prevents the bubble from falling infinitely faster over time.
 const MAX_FALL := 650.0
+# POP_ANIMATION_FRAME_COUNT is the number of frames in bubble_sheet.png.
+# The sheet has 2 rows and 4 columns, so it contains 8 frames.
+const POP_ANIMATION_FRAME_COUNT := 8
+# POP_ANIMATION_FRAME_TIME is how long each pop frame stays visible.
+# Smaller numbers make the pop animation finish faster.
+const POP_ANIMATION_FRAME_TIME := 0.07
 
 # radius controls both the drawn bubble size and the collision circle size.
 var radius := 31.0
@@ -24,6 +30,15 @@ var alive := true
 var fixed_x := 0.0
 # viewport_size stores the game window size so the bubble can stay inside it.
 var viewport_size := Vector2(1280, 720)
+# pop_animation_time stores how much time has accumulated toward the next pop frame.
+var pop_animation_time := 0.0
+# pop_animation_frame stores which frame of the bubble sheet is currently visible.
+var pop_animation_frame := 0
+# pop_animation_playing is true only while the bubble is playing its pop animation.
+var pop_animation_playing := false
+# sprite points to the Sprite2D child in scenes/Bubble.tscn.
+# The texture is assigned in the scene, so this script does not load image files.
+@onready var sprite := $Sprite2D as Sprite2D
 
 # _ready() runs once when the bubble enters the scene tree.
 func _ready() -> void:
@@ -32,6 +47,8 @@ func _ready() -> void:
 	# If the scene has the expected collision shape, keep its radius matched to the script radius.
 	if collider and collider.shape is CircleShape2D:
 		collider.shape.radius = radius
+	# Frame 0 is the full bubble frame used during normal play.
+	sprite.frame = 0
 
 # setup() resets the bubble for a new run.
 func setup(size: Vector2) -> void:
@@ -45,17 +62,27 @@ func setup(size: Vector2) -> void:
 	velocity = Vector2.ZERO
 	# Mark the bubble alive again.
 	alive = true
-	# Restore full opacity in case it was faded after popping.
-	modulate.a = 1.0
+	# Stop any old pop animation from a previous run.
+	pop_animation_playing = false
+	# Reset the pop animation timer so the next pop starts cleanly.
+	pop_animation_time = 0.0
+	# Reset the remembered frame number to the full-bubble frame.
+	pop_animation_frame = 0
+	# Show the full bubble frame while the bubble is alive.
+	sprite.frame = 0
+	# Restore the normal bubble opacity for a fresh run.
+	modulate.a = 0.7
 
 # _physics_process(delta) runs on Godot's fixed physics tick.
 # Physics movement belongs here because it stays stable even when frame rate changes.
 func _physics_process(delta: float) -> void:
 	# If the bubble has popped, it no longer accepts input or bounces off bounds.
 	if not alive:
-		# Still apply gravity so the faded bubble falls away after popping.
+		# Continue the pop animation after death until it reaches the last frame.
+		_advance_pop_animation(delta)
+		# Still apply gravity so the popped bubble continues drifting after the pop.
 		velocity.y += GRAVITY * delta
-		# Move according to the current velocity.
+		# Move according to the reduced pop velocity and ongoing gravity.
 		move_and_slide()
 		# Keep the popped bubble horizontally anchored too; the world scrolls instead of the character.
 		position.x = fixed_x
@@ -90,14 +117,48 @@ func _physics_process(delta: float) -> void:
 		# Give it a small downward velocity so it does not stick to the top.
 		velocity.y = 90.0
 
+# _advance_pop_animation() plays the bubble sheet from frame 0 to frame 7 after the bubble pops.
+func _advance_pop_animation(delta: float) -> void:
+	# If the pop animation has already reached its final frame, leave that final frame showing.
+	if not pop_animation_playing:
+		return
+	# Add this physics tick's elapsed time to the pop animation timer.
+	pop_animation_time += delta
+	# Use a while loop so the animation can catch up if a frame takes longer than expected.
+	while pop_animation_time >= POP_ANIMATION_FRAME_TIME and pop_animation_playing:
+		# Remove one animation-frame duration from the timer.
+		pop_animation_time -= POP_ANIMATION_FRAME_TIME
+		# If the next frame would still be inside the 0..7 sheet range, advance to it.
+		if pop_animation_frame < POP_ANIMATION_FRAME_COUNT - 1:
+			# Move to the next frame in the 2-by-4 bubble sheet.
+			pop_animation_frame += 1
+			# Show the newly selected pop frame.
+			sprite.frame = pop_animation_frame
+		else:
+			# The animation has reached frame 7, so stop changing frames.
+			pop_animation_playing = false
+
 # pop() is called by obstacles when they collide with the bubble.
 func pop() -> void:
 	# If pop() is called again after the bubble is already dead, do nothing.
+	# _physics_process() is already advancing any in-progress pop animation.
 	if not alive:
 		return
 	# Mark the bubble as no longer alive.
 	alive = false
-	# Fade the bubble to show it has popped.
-	modulate.a = 0.38
+	# Cut the current vertical speed in half so the pop slows the bubble without freezing it.
+	velocity.y *= 0.5
+	# Keep horizontal movement at zero because the world scrolls instead of the character.
+	velocity.x = 0.0
+	# Keep the normal alpha so the pop animation artwork stays visible.
+	modulate.a = 0.7
+	# Start the pop animation at the first frame of the sheet.
+	pop_animation_playing = true
+	# Reset the timer so frame 0 stays visible for a full animation step.
+	pop_animation_time = 0.0
+	# Frame 0 is the whole bubble, and frames 1 through 7 show the pop sequence.
+	pop_animation_frame = 0
+	# Show frame 0 immediately when the bubble pops.
+	sprite.frame = pop_animation_frame
 	# Tell any connected script, such as main.gd, that the bubble popped.
 	popped.emit()

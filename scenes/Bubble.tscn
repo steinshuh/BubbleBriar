@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3 uid="uid://bubblebriar_bubble"]
 
 [ext_resource type="Script" path="res://scripts/bubble.gd" id="1_bubble"]
-[ext_resource type="Texture2D" path="res://assets/bubble.png" id="2_bubble_texture"]
+[ext_resource type="Texture2D" path="res://assets/bubble_sheet.png" id="2_bubble_texture"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_bubble"]
 radius = 31.0
@@ -10,8 +10,10 @@ radius = 31.0
 script = ExtResource("1_bubble")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.645833, 0.645833)
+scale = Vector2(0.139797, 0.139797)
 texture = ExtResource("2_bubble_texture")
+hframes = 4
+vframes = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_bubble")
