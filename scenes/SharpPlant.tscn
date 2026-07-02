@@ -1,20 +1,20 @@
-[gd_scene load_steps=4 format=3 uid="uid://bubblebriar_sharp_plant"]
+[gd_scene format=3 uid="uid://d1jgmqni2f4fx"]
 
-[ext_resource type="Script" path="res://scripts/sharp_plant.gd" id="1_sharp_plant"]
-[ext_resource type="Texture2D" path="res://assets/sharp_plant.png" id="2_sharp_plant_texture"]
+[ext_resource type="Script" uid="uid://bjj35kphr6vdt" path="res://scripts/sharp_plant.gd" id="1_sharp_plant"]
+[ext_resource type="Texture2D" uid="uid://cr14d7ph0rdvn" path="res://assets/sharp_plant.png" id="2_sharp_plant_texture"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_sharp_plant"]
 radius = 24.0
-height = 116.0
+height = 128.0
 
-[node name="SharpPlant" type="Area2D"]
+[node name="SharpPlant" type="Area2D" unique_id=540215744]
 script = ExtResource("1_sharp_plant")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.1, 0.1)
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1793487438]
 position = Vector2(0, -60)
+scale = Vector2(0.1, 0.1)
 texture = ExtResource("2_sharp_plant_texture")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, -58)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1436606909]
+position = Vector2(0, -65)
 shape = SubResource("CapsuleShape2D_sharp_plant")
