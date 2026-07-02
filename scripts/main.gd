@@ -8,6 +8,10 @@ const BackgroundLayer := preload("res://scripts/background_layer.gd")
 # These constants preload reusable obstacle scenes that are spawned during gameplay.
 const MosquitoScene := preload("res://scenes/Mosquito.tscn")
 const SharpPlantScene := preload("res://scenes/SharpPlant.tscn")
+# TITLE_TEXTURE is the title image shown over the game when the scene first starts.
+const TITLE_TEXTURE := preload("res://assets/title.png")
+# TITLE_OVERLAY_SECONDS controls how long the title image stays visible at startup.
+const TITLE_OVERLAY_SECONDS := 5.0
 
 # BASE_SCROLL_SPEED is the continual forward speed of the bubble through the world.
 # The bubble stays fixed on screen, so this speed is shown by scrolling the world left.
@@ -63,10 +67,17 @@ var current_background_music_index := 0
 
 # score_label is the UI text in the top-left corner.
 var score_label: Label
-# speed_label is the UI text that shows the current continual forward scroll speed.
-var speed_label: Label
 # prompt_label is the centered UI text for controls and game-over messages.
 var prompt_label: Label
+# prompt_timer is a normal Timer node used to hide the startup controls prompt.
+var prompt_timer: Timer
+# title_overlay is the topmost UI layer that briefly covers the whole game at startup.
+var title_overlay: CanvasLayer
+# title_image displays title.png inside title_overlay.
+var title_image: TextureRect
+# title_timer is a normal Timer node used to hide the title overlay after startup.
+# Using a node-owned Timer avoids leaking a SceneTreeTimer if the game closes before 5 seconds pass.
+var title_timer: Timer
 
 # _ready() is a Godot lifecycle function.
 # Godot calls it one time after this node has entered the scene tree.
@@ -81,11 +92,119 @@ func _ready() -> void:
 	_build_world()
 	# Create and add the score, speed, and prompt UI labels.
 	_build_ui()
-	# Connect and start alternating background music tracks.
+	# Create the title overlay above all other game and UI elements.
+	_build_title_overlay()
+	# Start the 5-second title overlay timer without blocking the rest of initialization.
+	_show_title_overlay()
+	# Connect and start alternating background music tracks immediately at initialization.
 	_start_background_music()
 	# Start the first run by resetting score, bubble position, timers, and prompts.
 	_start_run()
 
+# _notification() lets this script react to low-level Godot lifecycle messages.
+func _notification(what: int) -> void:
+	# NOTIFICATION_PREDELETE is sent right before this node is destroyed.
+	if what == NOTIFICATION_PREDELETE:
+		# Release audio streams and timers before Godot checks for leaked resources.
+		_cleanup_runtime_resources()
+
+# _exit_tree() runs when Main is leaving the scene tree, such as when the game closes.
+func _exit_tree() -> void:
+	# Release audio streams and timers when the scene exits normally.
+	_cleanup_runtime_resources()
+
+# _cleanup_runtime_resources() stops runtime-owned timers and releases audio playback resources.
+func _cleanup_runtime_resources() -> void:
+	# Stop the first background music player so its AudioStream resource is released cleanly.
+	if is_instance_valid(background_music_1):
+		background_music_1.stop()
+		# Clearing stream breaks the remaining reference held by the AudioStreamPlayer during shutdown.
+		background_music_1.stream = null
+	# Stop the second background music player for the same cleanup reason.
+	if is_instance_valid(background_music_2):
+		background_music_2.stop()
+		# Clearing stream breaks the remaining reference held by the AudioStreamPlayer during shutdown.
+		background_music_2.stream = null
+	# Stop the point sound if it happens to be playing during shutdown.
+	if is_instance_valid(point_sound):
+		point_sound.stop()
+		# Clear the stream reference for complete shutdown cleanup.
+		point_sound.stream = null
+	# Stop and release the title timer if the game closes before the 5-second overlay finishes.
+	if is_instance_valid(title_timer):
+		title_timer.stop()
+		title_timer.queue_free()
+		title_timer = null
+	# Stop and release the prompt timer if the game closes before the controls prompt hides.
+	if is_instance_valid(prompt_timer):
+		prompt_timer.stop()
+		prompt_timer.queue_free()
+		prompt_timer = null
+
+# _build_title_overlay() creates the startup title image layer above the rest of the game.
+func _build_title_overlay() -> void:
+	# CanvasLayer draws independently of world nodes; a high layer value puts it above normal UI.
+	title_overlay = CanvasLayer.new()
+	# Layer 100 is higher than the default game and UI layers, so the title appears over everything.
+	title_overlay.layer = 100
+	# Add the overlay layer to Main so Godot draws and processes it.
+	add_child(title_overlay)
+
+	# TextureRect is a UI node that can draw title.png across the viewport.
+	title_image = TextureRect.new()
+	# Assign the preloaded title image to the TextureRect.
+	title_image.texture = TITLE_TEXTURE
+	# STRETCH_KEEP_ASPECT_CENTERED keeps the title proportional and centered inside its half-size rectangle.
+	title_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# Ignore the texture's native size so our explicit half-viewport size controls the display.
+	title_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	# Size and center the title image at half the viewport.
+	_update_title_image_layout()
+	# Add the image to the high overlay layer.
+	title_overlay.add_child(title_image)
+
+# _update_title_image_layout() sizes the title image to half the viewport and centers it.
+func _update_title_image_layout() -> void:
+	# If the title image has not been created yet, there is nothing to lay out.
+	if title_image == null:
+		return
+	# The title should render at half the width and half the height of the viewport.
+	title_image.size = viewport_size * 0.5
+	# Center the half-size title rectangle over the game.
+	title_image.position = (viewport_size - title_image.size) * 0.5
+
+# _show_title_overlay() shows the title image at startup and starts a node-owned 5-second timer.
+func _show_title_overlay() -> void:
+	# Make sure the title is visible when the game first initializes.
+	title_overlay.visible = true
+	# If a previous timer exists, stop it before creating a fresh startup timer.
+	if title_timer:
+		title_timer.stop()
+		# queue_free() safely deletes the old Timer node at the end of the frame.
+		title_timer.queue_free()
+	# Create a normal Timer node so it belongs to Main and is cleaned up with the scene.
+	title_timer = Timer.new()
+	# The title should hide once, not repeat every 5 seconds.
+	title_timer.one_shot = true
+	# Wait for the configured title duration.
+	title_timer.wait_time = TITLE_OVERLAY_SECONDS
+	# When the timer finishes, call _hide_title_overlay().
+	title_timer.timeout.connect(_hide_title_overlay)
+	# Add the Timer to the scene tree so it can run.
+	add_child(title_timer)
+	# Start counting down.
+	title_timer.start()
+
+# _hide_title_overlay() runs when the startup title timer finishes.
+func _hide_title_overlay() -> void:
+	# Hide the title layer after the startup display time has passed.
+	title_overlay.visible = false
+	# Stop holding onto the finished Timer node.
+	if title_timer:
+		# queue_free() removes the Timer cleanly from the scene tree.
+		title_timer.queue_free()
+		# Clear the reference so future checks know there is no active title timer.
+		title_timer = null
 # _start_background_music() connects the two music players and starts the first track.
 func _start_background_music() -> void:
 	# Connect background_music_1's finished signal only if it has not already been connected.
@@ -140,9 +259,6 @@ func _process(delta: float) -> void:
 	_update_scroll_speed(delta)
 	# Send the new scroll speed to all parallax layers and active obstacles.
 	_apply_scroll_speed()
-	# Update the visible speed label so the player can see the temporary rate change.
-	_update_speed_label()
-
 	# Scale spawn countdown by speed so faster travel produces obstacles sooner by distance.
 	spawn_timer -= delta * (current_scroll_speed / BASE_SCROLL_SPEED)
 	# When the timer reaches zero or below, it is time to create a new obstacle.
@@ -184,11 +300,6 @@ func _apply_scroll_speed() -> void:
 	for obstacle in obstacles:
 		# Obstacle speed is always positive because the world continually moves forward.
 		obstacle.set("speed", current_scroll_speed)
-
-# _update_speed_label() displays current scroll speed in the UI.
-func _update_speed_label() -> void:
-	# Show the actual continual forward speed after temporary Left/Right adjustment.
-	speed_label.text = "Forward %.0f px/s" % current_scroll_speed
 
 # _build_world() creates gameplay objects that are still generated from code.
 func _build_world() -> void:
@@ -240,19 +351,6 @@ func _build_ui() -> void:
 	# Add the score label to the UI layer.
 	ui.add_child(score_label)
 
-	# Create the speed label object.
-	speed_label = Label.new()
-	# Put the speed label under the score.
-	speed_label.position = Vector2(28, 60)
-	# Make it a little smaller than the score.
-	speed_label.add_theme_font_size_override("font_size", 22)
-	# Use the same dark blue as other UI text.
-	speed_label.add_theme_color_override("font_color", Color("#17324d"))
-	# Set initial text before the first frame updates it.
-	speed_label.text = "Forward 245 px/s"
-	# Add the speed label to the UI layer.
-	ui.add_child(speed_label)
-
 	# Create the prompt label for instructions and game-over messages.
 	prompt_label = Label.new()
 	# Center text horizontally inside the label rectangle.
@@ -294,19 +392,42 @@ func _start_run() -> void:
 	spawn_timer = 0.7
 	# Reset the visible score text.
 	score_label.text = "Score 0"
-	# Reset the visible speed text.
-	_update_speed_label()
 	# Show the controls briefly at the beginning of a run.
 	prompt_label.text = "Space/Up/click bounce\nRight/D speed up, Left/A slow down"
 	# Reset the bubble's position, movement, opacity, and alive state.
 	bubble.setup(viewport_size)
-	# Wait 1.6 seconds before hiding the prompt.
-	await get_tree().create_timer(1.6).timeout
-	# Only hide the prompt if the bubble did not pop during that waiting period.
+	# Start a node-owned timer that will hide the controls prompt after a short delay.
+	_start_prompt_timer()
+
+# _start_prompt_timer() starts a node-owned timer for hiding the controls prompt.
+func _start_prompt_timer() -> void:
+	# If an old prompt timer exists from a previous run, stop and remove it first.
+	if prompt_timer:
+		prompt_timer.stop()
+		prompt_timer.queue_free()
+	# Create a normal Timer node so it is cleaned up automatically with Main.
+	prompt_timer = Timer.new()
+	# The prompt should hide once per run.
+	prompt_timer.one_shot = true
+	# Keep the same delay that the old SceneTreeTimer used.
+	prompt_timer.wait_time = 1.6
+	# When the timer finishes, call _hide_start_prompt().
+	prompt_timer.timeout.connect(_hide_start_prompt)
+	# Add the Timer to the scene tree so it can run.
+	add_child(prompt_timer)
+	# Start counting down.
+	prompt_timer.start()
+
+# _hide_start_prompt() clears the controls prompt if the run is still active.
+func _hide_start_prompt() -> void:
+	# Only hide the prompt if the bubble did not pop during the waiting period.
 	if not game_over:
 		# Clear the prompt text so it does not block the view.
 		prompt_label.text = ""
-
+	# Stop holding onto the finished Timer node.
+	if prompt_timer:
+		prompt_timer.queue_free()
+		prompt_timer = null
 # _spawn_obstacle() creates one new plant or mosquito just off the right side of the screen.
 func _spawn_obstacle() -> void:
 	# Choose a plant 58% of the time and a mosquito 42% of the time.
@@ -366,3 +487,5 @@ func _on_viewport_size_changed() -> void:
 		prompt_label.size = Vector2(viewport_size.x, 120)
 		# Move the prompt label to the same relative vertical position in the new window.
 		prompt_label.position = Vector2(0, viewport_size.y * 0.34)
+	# Keep the title image half-sized and centered if the window is resized while it is visible.
+	_update_title_image_layout()

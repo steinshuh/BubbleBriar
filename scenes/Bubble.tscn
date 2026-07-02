@@ -1,29 +1,29 @@
-[gd_scene load_steps=6 format=3 uid="uid://bubblebriar_bubble"]
+[gd_scene format=3 uid="uid://56kr1y1hxnp8"]
 
-[ext_resource type="Script" path="res://scripts/bubble.gd" id="1_bubble"]
-[ext_resource type="Texture2D" path="res://assets/bubble_sheet.png" id="2_bubble_texture"]
-[ext_resource type="AudioStream" path="res://assets/sounds/bubble_popping.wav" id="3_pop_sound"]
-[ext_resource type="AudioStream" path="res://assets/sounds/soft_breeze.wav" id="4_breeze_sound"]
+[ext_resource type="Script" uid="uid://bk6v8rj6fukbt" path="res://scripts/bubble.gd" id="1_bubble"]
+[ext_resource type="Texture2D" uid="uid://1bc5d3e7mxv0" path="res://assets/bubble_sheet.png" id="2_bubble_texture"]
+[ext_resource type="AudioStream" uid="uid://ys5qpmtstrpk" path="res://assets/sounds/bubble_popping.wav" id="3_pop_sound"]
+[ext_resource type="AudioStream" uid="uid://dmhu1hd6hw12b" path="res://assets/sounds/soft_breeze.wav" id="4_breeze_sound"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_bubble"]
 radius = 31.0
 
-[node name="Bubble" type="CharacterBody2D"]
+[node name="Bubble" type="CharacterBody2D" unique_id=1521102767]
 script = ExtResource("1_bubble")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1761332248]
 scale = Vector2(0.139797, 0.139797)
 texture = ExtResource("2_bubble_texture")
 hframes = 4
 vframes = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1624922990]
 shape = SubResource("CircleShape2D_bubble")
 
-[node name="PopSound" type="AudioStreamPlayer2D" parent="."]
+[node name="PopSound" type="AudioStreamPlayer2D" parent="." unique_id=664730091]
 stream = ExtResource("3_pop_sound")
 volume_db = -2.0
 
-[node name="BreezeSound" type="AudioStreamPlayer2D" parent="."]
+[node name="BreezeSound" type="AudioStreamPlayer2D" parent="." unique_id=1193820187]
 stream = ExtResource("4_breeze_sound")
 volume_db = -6.0

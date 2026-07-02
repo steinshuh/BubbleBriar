@@ -24,6 +24,9 @@ const POP_ANIMATION_FRAME_COUNT := 8
 # POP_ANIMATION_FRAME_TIME is how long each pop frame stays visible.
 # Smaller numbers make the pop animation finish faster.
 const POP_ANIMATION_FRAME_TIME := 0.07
+# POP_FRAME_SCALE_MULTIPLIER controls how much larger each pop frame is than the previous frame.
+# 1.10 means frame 1 is 10% larger than frame 0, frame 2 is 10% larger than frame 1, and so on.
+const POP_FRAME_SCALE_MULTIPLIER := 1.3
 
 # radius controls both the drawn bubble size and the collision circle size.
 var radius := 31.0
@@ -39,6 +42,9 @@ var pop_animation_time := 0.0
 var pop_animation_frame := 0
 # pop_animation_playing is true only while the bubble is playing its pop animation.
 var pop_animation_playing := false
+# normal_sprite_scale remembers the Sprite2D scale from the Bubble scene.
+# The pop animation grows from this size and setup() restores this size for normal play.
+var normal_sprite_scale := Vector2.ONE
 # sprite points to the Sprite2D child in scenes/Bubble.tscn.
 # The texture is assigned in the scene, so this script does not load image files.
 @onready var sprite := $Sprite2D as Sprite2D
@@ -56,8 +62,12 @@ func _ready() -> void:
 	# If the scene has the expected collision shape, keep its radius matched to the script radius.
 	if collider and collider.shape is CircleShape2D:
 		collider.shape.radius = radius
+	# Remember the normal scene scale before any pop animation changes it.
+	normal_sprite_scale = sprite.scale
 	# Frame 0 is the full bubble frame used during normal play.
 	sprite.frame = 0
+	# Make sure the bubble starts at the normal scene scale.
+	sprite.scale = normal_sprite_scale
 
 # setup() resets the bubble for a new run.
 func setup(size: Vector2) -> void:
@@ -79,6 +89,8 @@ func setup(size: Vector2) -> void:
 	pop_animation_frame = 0
 	# Show the full bubble frame while the bubble is alive.
 	sprite.frame = 0
+	# Restore the normal sprite scale in case the previous run ended during the growing pop animation.
+	sprite.scale = normal_sprite_scale
 	# Restore the normal bubble opacity for a fresh run.
 	modulate.a = 0.7
 
@@ -148,11 +160,19 @@ func _advance_pop_animation(delta: float) -> void:
 			# Move to the next frame in the 2-by-4 bubble sheet.
 			pop_animation_frame += 1
 			# Show the newly selected pop frame.
-			sprite.frame = pop_animation_frame
+			_apply_pop_frame_visuals()
 		else:
 			# The animation has reached frame 7, so stop changing frames.
 			pop_animation_playing = false
 
+# _apply_pop_frame_visuals() makes the current pop frame visible and scales it for the pop effect.
+func _apply_pop_frame_visuals() -> void:
+	# Show the selected frame from the 2-by-4 bubble sheet.
+	sprite.frame = pop_animation_frame
+	# scale_factor grows by 10% per frame: frame 0 is 1.0, frame 1 is 1.1, frame 2 is 1.21, etc.
+	var scale_factor: float = pow(POP_FRAME_SCALE_MULTIPLIER, pop_animation_frame)
+	# Apply the growth relative to the normal sprite scale saved from Bubble.tscn.
+	sprite.scale = normal_sprite_scale * scale_factor
 # pop() is called by obstacles when they collide with the bubble.
 func pop() -> void:
 	# If pop() is called again after the bubble is already dead, do nothing.
@@ -174,7 +194,7 @@ func pop() -> void:
 	# Frame 0 is the whole bubble, and frames 1 through 7 show the pop sequence.
 	pop_animation_frame = 0
 	# Show frame 0 immediately when the bubble pops.
-	sprite.frame = pop_animation_frame
+	_apply_pop_frame_visuals()
 	# Restart the pop sound from the beginning in case this Bubble node was reused after a reset.
 	pop_sound.stop()
 	# Play the bubble popping WAV assigned in the Bubble scene.
